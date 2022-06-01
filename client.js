@@ -182,7 +182,7 @@ class TrunkedBodyParser {
     if (this.current === this.WAITING_LENGTH) {
       if (char === '\r') {
         if (this.length === 0) {
-          console.log(this.content)
+          // console.log(this.content)
           this.isFinished = true
         }
         this.current = this.WAITING_LENGTH_LINE_END
@@ -228,7 +228,7 @@ void (async function () {
   let response = await request.send()
   // console.log(response)
   let dom = parser.parserHTML(response.body)
-  console.log(JSON.stringify(dom))
+  // console.log(JSON.stringify(dom, null, ' '))
 })()
 
 // const client = net.createConnection(

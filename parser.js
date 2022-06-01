@@ -1,3 +1,4 @@
+const layout = require('./layout')
 const css = require('css')
 const EOF = Symbol('EOF') //EOF: END OF FILE
 
@@ -10,17 +11,17 @@ let currentTextNode = null
 let rules = []
 function addCSSRules(text) {
   var ast = css.parse(text)
-  console.log(JSON.stringify(ast))
+  // console.log(JSON.stringify(ast))
   rules.push(...ast.stylesheet.rules)
 }
 
 function match(element, selector) {
   if (!selector || !element.attributes) return false
   if (selector.charAt(0) == '#') {
-    var attr = element.attributes.filter((attr) => attr.name == 'id')[0]
+    var attr = element.attributes.filter((attr) => attr.name === 'id')[0]
     if (attr && attr.value === selector.replace('#', '')) return true
   } else if (selector.charAt(0) == '.') {
-    var attr = element.attributes.filter((attr) => attr.name == 'class')[0]
+    var attr = element.attributes.filter((attr) => attr.name === 'class')[0]
     if (attr && attr.value === selector.replace('.', '')) return true
   } else {
     if (element.tagName === selector) {
@@ -63,7 +64,7 @@ function computeCSS(element) {
 
     let j = 1
     for (let i = 0; i < elements.length; i++) {
-      if (!match(elements[i], selectorParts[j])) {
+      if (match(elements[i], selectorParts[j])) {
         j++
       }
     }
@@ -96,7 +97,7 @@ function computeCSS(element) {
 }
 
 function emit(token) {
-  console.log(token)
+  // console.log(token)
   let top = stack[stack.length - 1]
   if (token.type == 'startTag') {
     let element = {
@@ -126,6 +127,7 @@ function emit(token) {
       if (top.tagName === 'style') {
         addCSSRules(top.children[0].content)
       }
+      layout(top)
       stack.pop()
     }
     currentTextNode = null
