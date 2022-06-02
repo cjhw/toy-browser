@@ -304,7 +304,7 @@ function layout(element) {
     step = 0
   }
 
-  flexLines.forEach(function (items) {
+  flexLines.forEach((items) => {
     let lineCrossSize =
       style.alignContent === 'stretch'
         ? items.crossSpace + crossSpace / flexLines.length
