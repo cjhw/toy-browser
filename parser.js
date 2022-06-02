@@ -10,7 +10,7 @@ let currentTextNode = null
 
 let rules = []
 function addCSSRules(text) {
-  var ast = css.parse(text)
+  let ast = css.parse(text)
   // console.log(JSON.stringify(ast))
   rules.push(...ast.stylesheet.rules)
 }
@@ -18,10 +18,10 @@ function addCSSRules(text) {
 function match(element, selector) {
   if (!selector || !element.attributes) return false
   if (selector.charAt(0) == '#') {
-    var attr = element.attributes.filter((attr) => attr.name === 'id')[0]
+    let attr = element.attributes.filter((attr) => attr.name === 'id')[0]
     if (attr && attr.value === selector.replace('#', '')) return true
   } else if (selector.charAt(0) == '.') {
-    var attr = element.attributes.filter((attr) => attr.name === 'class')[0]
+    let attr = element.attributes.filter((attr) => attr.name === 'class')[0]
     if (attr && attr.value === selector.replace('.', '')) return true
   } else {
     if (element.tagName === selector) {
@@ -32,8 +32,8 @@ function match(element, selector) {
 
 // 权重
 function specificity(selector) {
-  var p = [0, 0, 0, 0]
-  var selectorParts = selector.split(' ')
+  let p = [0, 0, 0, 0]
+  let selectorParts = selector.split(' ')
   for (let part of selectorParts) {
     if (part.charAt(0) == '#') {
       p[1] += 1
@@ -54,11 +54,11 @@ function compare(sp1, sp2) {
 }
 
 function computeCSS(element) {
-  var elements = stack.slice().reverse()
+  let elements = stack.slice().reverse()
   if (!element.computedStyle) element.computedStyle = {}
   for (let rule of rules) {
     let matched
-    var selectorParts = rule.selectors[0].split(' ').reverse()
+    let selectorParts = rule.selectors[0].split(' ').reverse()
 
     if (!match(element, selectorParts[0])) continue
 
@@ -73,8 +73,8 @@ function computeCSS(element) {
     }
 
     if (matched) {
-      var sp = specificity(rule.selectors[0])
-      var computedStyle = element.computedStyle
+      let sp = specificity(rule.selectors[0])
+      let computedStyle = element.computedStyle
       for (let declaration of rule.declarations) {
         if (!computedStyle[declaration.property]) {
           computedStyle[declaration.property] = {}

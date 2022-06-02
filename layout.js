@@ -3,7 +3,7 @@ function getStyle(element) {
     element.style = {}
   }
   for (let prop in element.computedStyle) {
-    var p = element.computedStyle.value
+    let p = element.computedStyle.value
     element.style[prop] = element.computedStyle[prop].value
     if (element.style[prop].toString().match(/px$/)) {
       element.style[prop] = parseInt(element.style[prop])
@@ -17,15 +17,15 @@ function getStyle(element) {
 
 function layout(element) {
   if (!element.computedStyle) return
-  var elementStyle = getStyle(element)
+  let elementStyle = getStyle(element)
   if (elementStyle.display !== 'flex') return
-  var items = element.children.filter((e) => e.type === 'element')
+  let items = element.children.filter((e) => e.type === 'element')
   console.log(items)
   items.sort((a, b) => {
     // order属性规定了一个灵活的项目相对于同一容器内其他灵活项目的顺序
     return (a.order || 0) - (b.order || 0)
   })
-  var style = elementStyle
+  let style = elementStyle
 
   ;['width', 'height'].forEach((size) => {
     if (style[size] === 'auto' || style[size] === '') {
@@ -117,13 +117,13 @@ function layout(element) {
     crossSign = 1
   }
 
-  var isAutoMainSize = false
+  let isAutoMainSize = false
 
   if (!style[mainSize]) {
     // 如果父元素没有width，就撑开，取子元素的mainSize和
     elementStyle[mainSize] = 0
     for (let i = 0; i < items.length; i++) {
-      var item = items[i]
+      let item = items[i]
       const itemStyle = getStyle(item)
       if (itemStyle[mainSize] !== null || itemStyle[mainSize] !== void 0) {
         elementStyle[mainSize] = elementStyle[mainSize] + itemStyle[mainSize]
@@ -132,14 +132,14 @@ function layout(element) {
     }
   }
 
-  var flexLine = []
-  var flexLines = [flexLine]
-  var mainSpace = elementStyle[mainSize]
-  var crossSpace = 0
+  let flexLine = []
+  let flexLines = [flexLine]
+  let mainSpace = elementStyle[mainSize]
+  let crossSpace = 0
 
   for (let i = 0; i < items.length; i++) {
-    var item = items[i]
-    var itemStyle = getStyle(item)
+    let item = items[i]
+    let itemStyle = getStyle(item)
     if (itemStyle[mainSize] === null) {
       itemStyle[mainSize] = 0
     }
@@ -174,6 +174,179 @@ function layout(element) {
     }
   }
   flexLine.mainSpace = mainSpace
+
+  // 开始计算主轴
+  if (style.flexWrap === 'nowrap' || isAutoMainSize) {
+    flexLine.crossSpace =
+      style[crossSize] !== undefined ? style[crossSize] : crossSpace
+  } else {
+    flexLine.crossSpace = crossSpace
+  }
+
+  if (mainSpace < 0) {
+    let scale = style[mainSize] / (style[mainSize] - mainSpace)
+    let currentMain = mainBase
+    for (let i = 0; i < items.length; i++) {
+      let item = items[i]
+      let itemStyle = getStyle(item)
+      if (itemStyle[flex]) {
+        itemStyle[mainSize] = 0
+      }
+      itemStyle[mainSize] = itemStyle[mainSize] * scale
+      itemStyle[mainStart] = currentMain
+      itemStyle[mainEnd] = itemStyle[mainStart] + mainSign * itemStyle[mainSize]
+      currentMain = itemStyle[mainEnd]
+    }
+  } else {
+    flexLines.forEach((items) => {
+      let mainSpace = items.mainSpace
+      let flexTotal = 0
+      for (let i = 0; i < items.length; i++) {
+        let item = items[i]
+        let itemStyle = getStyle(item)
+        if (itemStyle.flex !== null && itemStyle.flex !== void 0) {
+          flexTotal += itemStyle.flex
+        }
+      }
+
+      if (flexTotal > 0) {
+        let currentMain = mainBase
+        for (let i = 0; i < items.length; i++) {
+          let item = items[i]
+          let itemStyle = getStyle(item)
+          if (itemStyle.flex) {
+            itemStyle[mainSize] = (mainSpace / flexTotal) * itemStyle.flex
+          }
+          itemStyle[mainStart] = currentMain
+          itemStyle[mainEnd] =
+            itemStyle[mainStart] + mainSign * itemStyle[mainSize]
+          currentMain = itemStyle[mainEnd]
+        }
+      } else {
+        let currentMain
+        let step
+        if ((style.justifyContent = 'flex-start')) {
+          currentMain = mainBase
+          step = 0
+        }
+        if ((style.justifyContent = 'flex-end')) {
+          currentMain = mainSpace * mainSign + mainBase
+          step = 0
+        }
+        if ((style.justifyContent = 'center')) {
+          currentMain = (mainSpace / 2) * mainSign + mainBase
+          step = 0
+        }
+        if ((style.justifyContent = 'space-between')) {
+          step = (mainSpace / (items.length - 1)) * mainSign
+          currentMain = mainBase
+        }
+        if ((style.justifyContent = 'space-around')) {
+          step = (mainSpace / items.length) * mainSign
+          currentMain = step / 2 + mainBase
+        }
+        for (let i = 0; i < items.length; i++) {
+          const itemStyle = getStyle(items[i])
+          itemStyle[mainStart] = currentMain
+          itemStyle[mainEnd] =
+            itemStyle[mainStart] + mainSign * itemStyle[mainSize]
+          currentMain = itemStyle[mainEnd] + step
+        }
+      }
+    })
+  }
+
+  // 计算交叉轴
+  if (!style[crossSize]) {
+    crossSpace = 0
+    elementStyle[crossSize] = 0
+    for (let i = 0; i < flexLines.length; i++) {
+      elementStyle[crossSize] =
+        elementStyle[crossSize] + flexLines[i].crossSpace
+    }
+  } else {
+    crossSpace = style[crossSize]
+    for (let i = 0; i < flexLines.length; i++) {
+      crossSpace -= flexLines[i].crossSpace
+    }
+  }
+
+  if (style.flexWrap === 'wrap-reverse') {
+    crossBase = style[crossSize]
+  } else {
+    crossBase = 0
+  }
+
+  let step
+
+  if (style.alignContent === 'flex-start') {
+    crossBase += 0
+    step = 0
+  }
+  if (style.alignContent === 'flex-end') {
+    crossBase += crossSign * crossSpace
+    step = 0
+  }
+  if (style.alignContent === 'center') {
+    crossBase += (crossSign * crossSpace) / 2
+    step = 0
+  }
+  if (style.alignContent === 'space-between') {
+    crossBase += 0
+    step = crossSpace / (flexLines.length - 1)
+  }
+  if (style.alignContent === 'space-around') {
+    step = crossSpace / flexLines.length
+    crossBase += (crossSign * step) / 2
+  }
+  if (style.alignContent === 'stretch') {
+    crossBase += 0
+    step = 0
+  }
+
+  flexLines.forEach(function (items) {
+    let lineCrossSize =
+      style.alignContent === 'stretch'
+        ? items.crossSpace + crossSpace / flexLines.length
+        : items.crossSpace
+    for (let i = 0; i < items.length; i++) {
+      const itemStyle = getStyle(items[i])
+
+      let align = itemStyle.alignSelf || style.alignItems
+
+      if (itemStyle[crossSize] === null) {
+        itemStyle[crossSize] = align === 'stretch' ? lineCrossSize : 0
+      }
+      if (align === 'flex-start') {
+        itemStyle[crossStart] = crossBase
+        itemStyle[crossEnd] =
+          itemStyle[crossStart] + crossSign * itemStyle[crossSize]
+      }
+      if (align === 'flex-end') {
+        itemStyle[crossEnd] = crossBase + crossSign * lineCrossSize
+        itemStyle[crossStart] =
+          itemStyle[crossEnd] - crossSign * itemStyle[crossSize]
+      }
+      if (align === 'center') {
+        itemStyle[crossStart] =
+          crossBase + (crossSign * (lineCrossSize - itemStyle[crossSize])) / 2
+        itemStyle[crossEnd] =
+          itemStyle[crossStart] + crossSign * itemStyle[crossSize]
+      }
+      if (align === 'stretch') {
+        itemStyle[crossStart] = crossBase
+        itemStyle[crossEnd] =
+          crossBase +
+          crossSign *
+            (itemStyle[crossSize] !== null && itemStyle[crossSize] !== void 0
+              ? itemStyle[crossSize]
+              : lineCrossSize)
+        itemStyle[crossSize] =
+          crossSign * (itemStyle[crossEnd] - itemStyle[crossStart])
+      }
+    }
+    crossBase += crossSign * (lineCrossSize + step)
+  })
 }
 
 module.exports = layout
